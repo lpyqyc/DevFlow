@@ -1,0 +1,121 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:DevFlow.ViewModels"
+        xmlns:views="using:DevFlow.Views"
+        xmlns:controls="using:DevFlow.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        x:Class="DevFlow.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="DevFlow - 设备流程编辑器"
+        Width="1200" Height="800"
+        MinWidth="900" MinHeight="600">
+
+    <DockPanel>
+        <!-- 顶部工具栏 -->
+        <Border DockPanel.Dock="Top" Background="#252526" Padding="8">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8">
+                    <Button Content="保存" Command="{Binding EditorViewModel.SaveCommand}" CommandParameter="{Binding $parent[Window]}" Padding="12,6"/>
+                    <Button Content="加载" Command="{Binding EditorViewModel.LoadCommand}" CommandParameter="{Binding $parent[Window]}" Padding="12,6"/>
+                    <Separator Width="1" Background="#3E3E42" Margin="8,0"/>
+                    <Button Content="执行" Command="{Binding EditorViewModel.ExecuteCommand}" IsEnabled="{Binding !EditorViewModel.IsRunning}" Padding="12,6" Background="#4CAF50"/>
+                    <Button Content="停止" Command="{Binding EditorViewModel.StopCommand}" IsEnabled="{Binding EditorViewModel.IsRunning}" Padding="12,6" Background="#F44336"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="缩放:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
+                    <Button Content="-" Command="{Binding EditorViewModel.ZoomOutCommand}" Width="30" Padding="4"/>
+                    <TextBlock Text="{Binding EditorViewModel.Zoom, StringFormat={}{0:P0}}" VerticalAlignment="Center" Foreground="#CCCCCC" Width="50" TextAlignment="Center"/>
+                    <Button Content="+" Command="{Binding EditorViewModel.ZoomInCommand}" Width="30" Padding="4"/>
+                    <Button Content="100%" Command="{Binding EditorViewModel.ResetZoomCommand}" Padding="8,6"/>
+                    <Separator Width="1" Background="#3E3E42" Margin="8,0"/>
+                    <CheckBox Content="网格" IsChecked="{Binding EditorViewModel.ShowGrid}" Foreground="#CCCCCC"/>
+                </StackPanel>
+
+                <TextBlock/>
+            </DockPanel>
+        </Border>
+
+        <!-- 主内容区: 三栏布局 -->
+        <Grid ColumnDefinitions="200,*,280">
+            <!-- 左侧设备列表 (支持拖拽) -->
+            <Border Grid.Column="0" Background="#2D2D30" BorderBrush="#3E3E42" BorderThickness="0,0,1,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="设备列表" FontSize="14" FontWeight="SemiBold" 
+                               Foreground="White" Margin="12,12,12,8"/>
+
+                    <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="12,8">
+                        <Button Content="📐 自动布局" Command="{Binding EditorViewModel.AutoLayoutCommand}" 
+                                HorizontalAlignment="Stretch" Padding="8"/>
+                        <Button Content="🗑️ 删除节点" Command="{Binding EditorViewModel.DeleteSelectedNodeCommand}" 
+                                HorizontalAlignment="Stretch" Padding="8"/>
+                    </StackPanel>
+
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding EditorViewModel.DeviceTypes}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#3E3E42" CornerRadius="4" Margin="8,4" Padding="12,8"
+                                            PointerPressed="OnDeviceItemPressed"
+                                            Cursor="Hand">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{Binding Icon}" FontSize="16"/>
+                                            <TextBlock Text="{Binding Name}" Foreground="White" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- 中间 Canvas 编辑器 (拖拽目标) -->
+            <Grid Grid.Column="1" Background="#1E1E1E"
+                  DragDrop.Drop="OnCanvasDrop" DragDrop.DragOver="OnCanvasDragOver">
+                <controls:FlowEditor x:Name="FlowEditorControl"
+                                     Nodes="{Binding EditorViewModel.Nodes}"
+                                     Connections="{Binding EditorViewModel.Connections}"
+                                     SelectedNode="{Binding EditorViewModel.SelectedNode, Mode=TwoWay}"
+                                     Zoom="{Binding EditorViewModel.Zoom, Mode=TwoWay}"
+                                     ShowGrid="{Binding EditorViewModel.ShowGrid}"
+                                     EnableAutoAlign="True"
+                                     GridSpacing="20"/>
+            </Grid>
+
+            <!-- 右侧属性面板 -->
+            <Border Grid.Column="2" Background="#2D2D30" BorderBrush="#3E3E42" BorderThickness="1,0,0,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="属性" FontSize="14" FontWeight="SemiBold" 
+                               Foreground="White" Margin="12,12,12,8"/>
+
+                    <ScrollViewer>
+                        <StackPanel IsVisible="{Binding PropertyViewModel.SelectedNode, Converter={x:Static ObjectConverters.IsNotNull}}" Margin="12,0">
+                            <TextBlock Text="节点名称" Foreground="#888888" FontSize="11"/>
+                            <TextBox Text="{Binding PropertyViewModel.SelectedNode.Title, Mode=TwoWay}" Margin="0,4,0,12"/>
+
+                            <TextBlock Text="节点类型" Foreground="#888888" FontSize="11"/>
+                            <TextBlock Text="{Binding PropertyViewModel.SelectedNode.DeviceType.Name}" Foreground="White" Margin="0,4,0,12"/>
+
+                            <TextBlock Text="属性" Foreground="#888888" FontSize="11" Margin="0,0,0,8"/>
+
+                            <ItemsControl ItemsSource="{Binding PropertyViewModel.Properties}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,0,0,12">
+                                            <TextBlock Text="{Binding Name}" Foreground="#CCCCCC" FontSize="11"/>
+                                            <TextBox Text="{Binding Value, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>
