@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace DevFlow.Models;
 
@@ -67,7 +68,9 @@ public class DeviceType
     /// <summary>
     /// 自定义控件类型
     /// 用于显示节点的自定义UI
+    /// 不序列化，运行时类型信息无法直接序列化
     /// </summary>
+    [JsonIgnore]
     public Type? ControlType { get; init; }
     
     #endregion

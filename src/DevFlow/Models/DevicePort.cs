@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 
 namespace DevFlow.Models;
 
@@ -28,8 +29,16 @@ public class DevicePort
     /// <summary>
     /// 端口数据类型
     /// 用于类型检查和验证
+    /// 不序列化，运行时类型信息无法直接序列化
     /// </summary>
+    [JsonIgnore]
     public Type DataType { get; init; } = typeof(object);
+    
+    /// <summary>
+    /// 端口数据类型名称
+    /// 用于序列化，存储类型的全名
+    /// </summary>
+    public string? DataTypeName { get; init; }
     
     /// <summary>
     /// 默认值

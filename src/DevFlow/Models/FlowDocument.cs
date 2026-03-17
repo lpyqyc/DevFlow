@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace DevFlow.Models;
@@ -73,7 +73,7 @@ public partial class FlowDocument : ObservableObject
     /// 节点列表
     /// </summary>
     [ObservableProperty]
-    private List<DeviceNode> _nodes = new();
+    private ObservableCollection<DeviceNode> _nodes = new();
 
     #endregion
 
@@ -83,13 +83,13 @@ public partial class FlowDocument : ObservableObject
     /// 普通连接列表（输出端口连接）
     /// </summary>
     [ObservableProperty]
-    private List<DeviceConnection> _connections = new();
+    private ObservableCollection<DeviceConnection> _connections = new();
     
     /// <summary>
     /// 错误连接列表（错误端口连接）
     /// </summary>
     [ObservableProperty]
-    private List<DeviceConnection> _errorConnections = new();
+    private ObservableCollection<DeviceConnection> _errorConnections = new();
 
     #endregion
 
@@ -99,7 +99,7 @@ public partial class FlowDocument : ObservableObject
     /// 注释列表
     /// </summary>
     [ObservableProperty]
-    private List<Annotation> _annotations = new();
+    private ObservableCollection<Annotation> _annotations = new();
 
     #endregion
 }

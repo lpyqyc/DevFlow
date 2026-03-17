@@ -36,7 +36,7 @@ public partial class DeviceNode : ObservableObject
     /// 定义节点的端口和属性
     /// 不序列化，运行时从 DeviceRegistry 获取
     /// </summary>
-    [JsonIgnore]
+    [property: JsonIgnore]
     [ObservableProperty]
     private DeviceType? _deviceType;
     
@@ -61,7 +61,7 @@ public partial class DeviceNode : ObservableObject
     /// 节点位置（文档坐标）
     /// 用于运行时的位置访问
     /// </summary>
-    [JsonIgnore]
+    [property: JsonIgnore]
     public Avalonia.Point Position
     {
         get => _position;
@@ -118,7 +118,7 @@ public partial class DeviceNode : ObservableObject
     /// 是否正在执行
     /// 运行时状态，不序列化
     /// </summary>
-    [JsonIgnore]
+    [property: JsonIgnore]
     [ObservableProperty]
     private bool _isExecuting;
     
@@ -126,7 +126,7 @@ public partial class DeviceNode : ObservableObject
     /// 是否执行完成
     /// 运行时状态，不序列化
     /// </summary>
-    [JsonIgnore]
+    [property: JsonIgnore]
     [ObservableProperty]
     private bool _isCompleted;
     
@@ -134,7 +134,7 @@ public partial class DeviceNode : ObservableObject
     /// 是否执行成功
     /// 运行时状态，不序列化
     /// </summary>
-    [JsonIgnore]
+    [property: JsonIgnore]
     [ObservableProperty]
     private bool _isSuccess = true;
     
@@ -142,7 +142,7 @@ public partial class DeviceNode : ObservableObject
     /// 是否有错误
     /// 运行时状态，不序列化
     /// </summary>
-    [JsonIgnore]
+    [property: JsonIgnore]
     [ObservableProperty]
     private bool _hasError;
     
@@ -150,7 +150,7 @@ public partial class DeviceNode : ObservableObject
     /// 错误消息
     /// 运行时状态，不序列化
     /// </summary>
-    [JsonIgnore]
+    [property: JsonIgnore]
     [ObservableProperty]
     private string? _errorMessage;
     

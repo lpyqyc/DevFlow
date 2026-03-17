@@ -161,7 +161,7 @@ public class FlowExecutor : IFlowExecutor
         }
     }
 
-    private List<DeviceNode> TopologicalSort(List<DeviceNode> nodes, List<DeviceConnection> connections)
+    private List<DeviceNode> TopologicalSort(IEnumerable<DeviceNode> nodes, IEnumerable<DeviceConnection> connections)
     {
         var result = new List<DeviceNode>();
         var visited = new HashSet<string>();
@@ -186,7 +186,7 @@ public class FlowExecutor : IFlowExecutor
             result.Add(node);
         }
 
-        foreach (var node in nodes)
+        foreach (var node in nodeMap.Values)
         {
             Visit(node);
         }

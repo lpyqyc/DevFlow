@@ -4,7 +4,10 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -32,16 +35,17 @@ public partial class EditorViewModel : ViewModelBase
     /// 当前流程文档
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Nodes))]
+    [NotifyPropertyChangedFor(nameof(Annotations))]
     private FlowDocument _currentDocument = new();
 
     /// <summary>
-    /// 节点集合
+    /// 节点集合（直接使用 CurrentDocument.Nodes）
     /// </summary>
-    [ObservableProperty]
-    private ObservableCollection<DeviceNode> _nodes = new();
+    public ObservableCollection<DeviceNode> Nodes => CurrentDocument.Nodes;
 
     /// <summary>
-    /// 连接集合
+    /// 连接集合（UI 视图模型）
     /// </summary>
     [ObservableProperty]
     private ObservableCollection<ConnectionViewModel> _connections = new();
@@ -49,8 +53,7 @@ public partial class EditorViewModel : ViewModelBase
     /// <summary>
     /// 注释集合
     /// </summary>
-    [ObservableProperty]
-    private ObservableCollection<Annotation> _annotations = new();
+    public ObservableCollection<Annotation> Annotations => CurrentDocument.Annotations;
 
     /// <summary>
     /// 当前选中的节点
@@ -180,25 +183,6 @@ public partial class EditorViewModel : ViewModelBase
 
     private void OnNodesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.NewItems != null)
-        {
-            foreach (DeviceNode node in e.NewItems)
-            {
-                if (!CurrentDocument.Nodes.Contains(node))
-                {
-                    CurrentDocument.Nodes.Add(node);
-                }
-            }
-        }
-        
-        if (e.OldItems != null)
-        {
-            foreach (DeviceNode node in e.OldItems)
-            {
-                CurrentDocument.Nodes.Remove(node);
-            }
-        }
-        
         HasUnsavedChanges = true;
     }
     
@@ -237,8 +221,13 @@ public partial class EditorViewModel : ViewModelBase
         {
             foreach (ConnectionViewModel conn in e.OldItems)
             {
-                CurrentDocument.Connections.RemoveAll(c => c.Id == conn.Id);
-                CurrentDocument.ErrorConnections.RemoveAll(c => c.Id == conn.Id);
+                var toRemove = CurrentDocument.Connections.Where(c => c.Id == conn.Id).ToList();
+                foreach (var item in toRemove)
+                    CurrentDocument.Connections.Remove(item);
+                    
+                var toRemoveError = CurrentDocument.ErrorConnections.Where(c => c.Id == conn.Id).ToList();
+                foreach (var item in toRemoveError)
+                    CurrentDocument.ErrorConnections.Remove(item);
             }
         }
         
@@ -282,7 +271,6 @@ public partial class EditorViewModel : ViewModelBase
         _undoRedoService.ExecuteOperation(operation);
         
         Nodes.Add(node);
-        CurrentDocument.Nodes.Add(node);
         
         UpdateUndoRedoState();
         HasUnsavedChanges = true;
@@ -294,7 +282,14 @@ public partial class EditorViewModel : ViewModelBase
     [RelayCommand]
     private void DeleteSelectedNode()
     {
-        if (SelectedNode == null) return;
+        if (SelectedNode == null)
+        {
+            LogHelper.LogWarning("EditorViewModel", "删除节点失败: SelectedNode 为 null");
+            return;
+        }
+
+        LogHelper.LogInfo("EditorViewModel", "开始删除节点: {Title}, Id={Id}, 当前节点数={Count}", 
+            SelectedNode.Title, SelectedNode.Id, Nodes.Count);
 
         var connectionsToRemove = Connections
             .Where(c => c.SourceNodeId == SelectedNode.Id || c.TargetNodeId == SelectedNode.Id)
@@ -309,15 +304,24 @@ public partial class EditorViewModel : ViewModelBase
                 _undoRedoService.ExecuteOperation(deleteConnOp);
             }
             Connections.Remove(conn);
-            CurrentDocument.Connections.RemoveAll(c => c.Id == conn.Id);
-            CurrentDocument.ErrorConnections.RemoveAll(c => c.Id == conn.Id);
+            
+            var toRemove = CurrentDocument.Connections.Where(c => c.Id == conn.Id).ToList();
+            foreach (var item in toRemove)
+                CurrentDocument.Connections.Remove(item);
+                
+            var toRemoveError = CurrentDocument.ErrorConnections.Where(c => c.Id == conn.Id).ToList();
+            foreach (var item in toRemoveError)
+                CurrentDocument.ErrorConnections.Remove(item);
         }
 
-        var operation = new DeleteNodeOperation(Nodes, SelectedNode, CurrentDocument);
+        var nodeToDelete = SelectedNode;
+        var operation = new DeleteNodeOperation(Nodes, nodeToDelete, CurrentDocument);
         _undoRedoService.ExecuteOperation(operation);
         
-        Nodes.Remove(SelectedNode);
-        CurrentDocument.Nodes.Remove(SelectedNode);
+        Nodes.Remove(nodeToDelete);
+        LogHelper.LogInfo("EditorViewModel", "节点已从集合移除: {Title}, 剩余节点数={Count}", 
+            nodeToDelete.Title, Nodes.Count);
+        
         SelectedNode = null;
         
         UpdateUndoRedoState();
@@ -533,13 +537,11 @@ public partial class EditorViewModel : ViewModelBase
             // TODO: 提示用户保存
         }
 
-        // 清空当前文档
-        Nodes.CollectionChanged -= OnNodesCollectionChanged;
+        // 取消事件监听
         Connections.CollectionChanged -= OnConnectionsCollectionChanged;
         
-        Nodes.Clear();
+        // 清空连接集合
         Connections.Clear();
-        Annotations.Clear();
         _undoRedoService.Clear();
 
         // 创建新文档
@@ -552,7 +554,7 @@ public partial class EditorViewModel : ViewModelBase
         TranslateX = 0;
         TranslateY = 0;
         
-        Nodes.CollectionChanged += OnNodesCollectionChanged;
+        // 恢复事件监听
         Connections.CollectionChanged += OnConnectionsCollectionChanged;
         
         // 触发文档重置事件
@@ -616,18 +618,10 @@ public partial class EditorViewModel : ViewModelBase
             TranslateY = TranslateY
         };
         
-        // 更新注释列表
-        CurrentDocument.Annotations = Annotations.ToList();
-        
         // 更新时间戳
         CurrentDocument.ModifiedAt = DateTime.Now;
         
-        // 序列化
-        var json = JsonSerializer.Serialize(CurrentDocument, new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
+        var json = JsonSerializer.Serialize(CurrentDocument, GetJsonOptions());
 
         await File.WriteAllTextAsync(filePath, json);
         HasUnsavedChanges = false;
@@ -668,16 +662,28 @@ public partial class EditorViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// 获取 JSON 序列化选项
+    /// </summary>
+    private JsonSerializerOptions GetJsonOptions()
+    {
+        return new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            ReferenceHandler = ReferenceHandler.IgnoreCycles,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+    }
+
+    /// <summary>
     /// 从指定文件加载
     /// </summary>
     private async Task LoadFromFileAsync(string filePath)
     {
         var json = await File.ReadAllTextAsync(filePath);
 
-        var document = JsonSerializer.Deserialize<FlowDocument>(json, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
+        var document = JsonSerializer.Deserialize<FlowDocument>(json, GetJsonOptions());
 
         if (document == null)
         {
@@ -685,28 +691,32 @@ public partial class EditorViewModel : ViewModelBase
             return;
         }
 
-        // 取消集合变化监听
-        Nodes.CollectionChanged -= OnNodesCollectionChanged;
+        // 取消旧集合的事件监听
+        if (CurrentDocument.Nodes != null)
+            CurrentDocument.Nodes.CollectionChanged -= OnNodesCollectionChanged;
         Connections.CollectionChanged -= OnConnectionsCollectionChanged;
         
-        // 设置当前文档
-        CurrentDocument = document;
-        Nodes.Clear();
+        // 清空连接集合
         Connections.Clear();
-        Annotations.Clear();
         _undoRedoService.Clear();
 
-        // 恢复节点
+        // 设置当前文档（Nodes 会自动指向新文档的节点集合）
+        CurrentDocument = document;
+
+        LogHelper.LogInfo("EditorViewModel", "反序列化完成，节点数: {NodeCount}", document.Nodes.Count);
+
+        // 恢复节点的 DeviceType
         foreach (var node in document.Nodes)
         {
             if (!string.IsNullOrEmpty(node.DeviceTypeId))
             {
                 node.DeviceType = _deviceRegistry.GetDeviceType(node.DeviceTypeId);
             }
-            Nodes.Add(node);
+            LogHelper.LogInfo("EditorViewModel", "恢复节点: {Title}, Position=({X},{Y})", 
+                node.Title, node.PositionX, node.PositionY);
         }
 
-        // 恢复连接
+        // 恢复连接到 UI 集合
         foreach (var conn in document.Connections)
         {
             Connections.Add(new ConnectionViewModel
@@ -734,17 +744,8 @@ public partial class EditorViewModel : ViewModelBase
             });
         }
         
-        // 恢复注释
-        if (document.Annotations != null)
-        {
-            foreach (var annotation in document.Annotations)
-            {
-                Annotations.Add(annotation);
-            }
-        }
-        
         // 恢复集合变化监听
-        Nodes.CollectionChanged += OnNodesCollectionChanged;
+        CurrentDocument.Nodes.CollectionChanged += OnNodesCollectionChanged;
         Connections.CollectionChanged += OnConnectionsCollectionChanged;
         
         // 恢复视图状态
@@ -753,15 +754,25 @@ public partial class EditorViewModel : ViewModelBase
             Zoom = document.Viewport.Zoom;
             TranslateX = document.Viewport.TranslateX;
             TranslateY = document.Viewport.TranslateY;
-            
-            // 通知 FlowEditor 更新视图状态
+        }
+        
+        // 恢复集合变化监听
+        CurrentDocument.Nodes.CollectionChanged += OnNodesCollectionChanged;
+        Connections.CollectionChanged += OnConnectionsCollectionChanged;
+        
+        HasUnsavedChanges = false;
+        
+        // 触发文档重置事件，通知 FlowEditor 刷新
+        DocumentReset?.Invoke(this, EventArgs.Empty);
+        
+        // 通知视图状态变化
+        if (document.Viewport != null)
+        {
             ViewportChanged?.Invoke(this, document.Viewport);
         }
         
         // 触发连线刷新
         ConnectionsRefreshRequested?.Invoke(this, EventArgs.Empty);
-        
-        HasUnsavedChanges = false;
         
         LogHelper.LogInfo("EditorViewModel", "流程已加载: {FilePath}, 节点数={NodeCount}, 连接数={ConnectionCount}", 
             filePath, Nodes.Count, Connections.Count);
@@ -867,8 +878,14 @@ public partial class EditorViewModel : ViewModelBase
         }
         
         Connections.Remove(connection);
-        CurrentDocument.Connections.RemoveAll(c => c.Id == connection.Id);
-        CurrentDocument.ErrorConnections.RemoveAll(c => c.Id == connection.Id);
+        
+        var toRemove = CurrentDocument.Connections.Where(c => c.Id == connection.Id).ToList();
+        foreach (var item in toRemove)
+            CurrentDocument.Connections.Remove(item);
+            
+        var toRemoveError = CurrentDocument.ErrorConnections.Where(c => c.Id == connection.Id).ToList();
+        foreach (var item in toRemoveError)
+            CurrentDocument.ErrorConnections.Remove(item);
         
         UpdateUndoRedoState();
         HasUnsavedChanges = true;

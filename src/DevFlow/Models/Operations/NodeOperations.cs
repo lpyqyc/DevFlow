@@ -24,17 +24,12 @@ public class AddNodeOperation : IOperation
     public void Undo()
     {
         _nodes.Remove(_node);
-        _document.Nodes.Remove(_node);
         LogHelper.LogInfo("UndoRedo", "撤销添加节点: {NodeId}", _node.Id);
     }
 
     public void Redo()
     {
         _nodes.Add(_node);
-        if (!_document.Nodes.Contains(_node))
-        {
-            _document.Nodes.Add(_node);
-        }
         LogHelper.LogInfo("UndoRedo", "重做添加节点: {NodeId}", _node.Id);
     }
 
@@ -72,18 +67,12 @@ public class DeleteNodeOperation : IOperation
         {
             _nodes.Add(_node);
         }
-        
-        if (!_document.Nodes.Contains(_node))
-        {
-            _document.Nodes.Add(_node);
-        }
         LogHelper.LogInfo("UndoRedo", "撤销删除节点: {NodeId}", _node.Id);
     }
 
     public void Redo()
     {
         _nodes.Remove(_node);
-        _document.Nodes.Remove(_node);
         LogHelper.LogInfo("UndoRedo", "重做删除节点: {NodeId}", _node.Id);
     }
 

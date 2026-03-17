@@ -40,6 +40,26 @@ public partial class MainWindow : Window
         if (DataContext is MainWindowViewModel vm)
         {
             vm.EditorViewModel.ConnectionsRefreshRequested += OnConnectionsRefreshRequested;
+            vm.EditorViewModel.ViewportChanged += OnViewportChanged;
+            vm.EditorViewModel.DocumentReset += OnDocumentReset;
+        }
+    }
+    
+    private void OnViewportChanged(object? sender, ViewportState e)
+    {
+        if (_flowEditor != null)
+        {
+            _flowEditor.SetViewport(e.Zoom, e.TranslateX, e.TranslateY);
+            LogHelper.LogInfo("MainWindow", "视图状态已恢复: Zoom={Zoom}", e.Zoom);
+        }
+    }
+    
+    private void OnDocumentReset(object? sender, EventArgs e)
+    {
+        if (_flowEditor != null)
+        {
+            _flowEditor.RefreshNodes();
+            LogHelper.LogInfo("MainWindow", "文档已重置，刷新节点");
         }
     }
     
@@ -164,7 +184,6 @@ public partial class MainWindow : Window
                 }
                 
                 vm.EditorViewModel.Nodes.Add(node);
-                vm.EditorViewModel.CurrentDocument.Nodes.Add(node);
                 
                 LogHelper.LogInfo("MainWindow", "节点创建成功: Id={NodeId}, Title={Title}", node.Id, node.Title);
             }
@@ -238,7 +257,6 @@ public partial class MainWindow : Window
                 }
                 
                 vm.EditorViewModel.Nodes.Add(node);
-                vm.EditorViewModel.CurrentDocument.Nodes.Add(node);
                 
                 LogHelper.LogInfo("MainWindow", "节点创建成功: Id={NodeId}, Title={Title}", node.Id, node.Title);
             }

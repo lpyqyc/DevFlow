@@ -582,6 +582,8 @@ public class FlowEditor : Canvas
 
     public void RemoveNode(DeviceNode node)
     {
+        LogHelper.LogInfo("FlowEditor", "RemoveNode 被调用: {Title}, Id={Id}", node.Title, node.Id);
+        
         if (_nodeControls.TryGetValue(node.Id, out var control))
         {
             control.HeaderPressed -= OnNodeHeaderPressed;
@@ -593,6 +595,12 @@ public class FlowEditor : Canvas
             
             Children.Remove(control);
             _nodeControls.Remove(node.Id);
+            
+            LogHelper.LogInfo("FlowEditor", "节点控件已移除: {Title}, 剩余控件数={Count}", node.Title, _nodeControls.Count);
+        }
+        else
+        {
+            LogHelper.LogWarning("FlowEditor", "未找到节点控件: {Title}, Id={Id}", node.Title, node.Id);
         }
     }
     
@@ -1254,6 +1262,9 @@ public class FlowEditor : Canvas
 
     private void OnNodesCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
+        LogHelper.LogInfo("FlowEditor", "OnNodesCollectionChanged: Action={Action}, NewItems={NewCount}, OldItems={OldCount}", 
+            e.Action, e.NewItems?.Count ?? 0, e.OldItems?.Count ?? 0);
+        
         if (e.NewItems != null)
         {
             foreach (DeviceNode node in e.NewItems)
@@ -1314,6 +1325,22 @@ public class FlowEditor : Canvas
     #endregion
 
     #region 公共刷新方法
+
+    /// <summary>
+    /// 设置视图状态（缩放和平移）
+    /// </summary>
+    public void SetViewport(double zoom, double translateX, double translateY)
+    {
+        _translateX = translateX;
+        _translateY = translateY;
+        Zoom = zoom;
+        
+        UpdateAllNodePositions();
+        UpdateGrid();
+        ScheduleConnectionUpdate();
+        
+        LogHelper.LogInfo("FlowEditor", "视图状态已恢复: Zoom={Zoom}, TranslateX={TX}, TranslateY={TY}", zoom, translateX, translateY);
+    }
 
     public void RefreshNodes()
     {
