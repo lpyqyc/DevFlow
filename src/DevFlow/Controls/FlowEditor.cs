@@ -243,6 +243,60 @@ public class FlowEditor : Canvas
         LogHelper.LogInfo("FlowEditor", "重置缩放: Zoom=1.0, TranslateX={TX}, TranslateY={TY}", _translateX, _translateY);
     }
     
+    /// <summary>
+    /// 自动适应视窗，让所有节点在当前视窗中可见
+    /// </summary>
+    public void FitToView()
+    {
+        if (Nodes == null || Nodes.Count == 0) return;
+        
+        const double nodeWidth = 180;
+        const double nodeHeight = 130;
+        const double padding = 50;
+        
+        // 计算所有节点的边界
+        double minX = double.MaxValue, minY = double.MaxValue;
+        double maxX = double.MinValue, maxY = double.MinValue;
+        
+        foreach (var node in Nodes)
+        {
+            if (node.Position.X < minX) minX = node.Position.X;
+            if (node.Position.Y < minY) minY = node.Position.Y;
+            if (node.Position.X + nodeWidth > maxX) maxX = node.Position.X + nodeWidth;
+            if (node.Position.Y + nodeHeight > maxY) maxY = node.Position.Y + nodeHeight;
+        }
+        
+        var contentWidth = maxX - minX;
+        var contentHeight = maxY - minY;
+        
+        if (contentWidth <= 0 || contentHeight <= 0) return;
+        
+        // 计算适合视窗的缩放比例
+        var viewWidth = Bounds.Width - padding * 2;
+        var viewHeight = Bounds.Height - padding * 2;
+        
+        var scaleX = viewWidth / contentWidth;
+        var scaleY = viewHeight / contentHeight;
+        var newZoom = Math.Min(scaleX, scaleY);
+        newZoom = Math.Max(0.25, Math.Min(2.0, newZoom)); // 限制缩放范围
+        
+        // 计算居中偏移
+        var centerX = Bounds.Width / 2;
+        var centerY = Bounds.Height / 2;
+        var contentCenterX = (minX + maxX) / 2;
+        var contentCenterY = (minY + maxY) / 2;
+        
+        Zoom = newZoom;
+        _translateX = centerX - contentCenterX * newZoom;
+        _translateY = centerY - contentCenterY * newZoom;
+        
+        UpdateAllNodePositions();
+        UpdateGrid();
+        ScheduleConnectionUpdate();
+        
+        LogHelper.LogInfo("FlowEditor", "适应视窗: Zoom={Zoom:F2}, TranslateX={TX}, TranslateY={TY}", newZoom, _translateX, _translateY);
+    }
+    
     private void ApplyZoom(double factor, Point center)
     {
         var newZoom = Zoom * factor;

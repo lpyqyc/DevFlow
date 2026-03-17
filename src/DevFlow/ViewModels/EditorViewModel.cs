@@ -127,6 +127,11 @@ public partial class EditorViewModel : ViewModelBase
     public event EventHandler? ConnectionsRefreshRequested;
     
     /// <summary>
+    /// 适应视窗请求事件
+    /// </summary>
+    public event EventHandler? FitToViewRequested;
+    
+    /// <summary>
     /// 视图状态变化事件（用于通知 FlowEditor 更新）
     /// </summary>
     public event EventHandler<ViewportState>? ViewportChanged;
@@ -410,6 +415,9 @@ public partial class EditorViewModel : ViewModelBase
                 currentY += nodeHeight + verticalSpacing;
             }
         }
+        
+        // 触发适应视窗事件
+        FitToViewRequested?.Invoke(this, EventArgs.Empty);
         
         ConnectionsRefreshRequested?.Invoke(this, EventArgs.Empty);
         HasUnsavedChanges = true;

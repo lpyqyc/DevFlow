@@ -42,6 +42,7 @@ public partial class MainWindow : Window
             vm.EditorViewModel.ConnectionsRefreshRequested += OnConnectionsRefreshRequested;
             vm.EditorViewModel.ViewportChanged += OnViewportChanged;
             vm.EditorViewModel.DocumentReset += OnDocumentReset;
+            vm.EditorViewModel.FitToViewRequested += OnFitToViewRequested;
         }
     }
     
@@ -51,6 +52,21 @@ public partial class MainWindow : Window
         {
             _flowEditor.SetViewport(e.Zoom, e.TranslateX, e.TranslateY);
             LogHelper.LogInfo("MainWindow", "视图状态已恢复: Zoom={Zoom}", e.Zoom);
+        }
+    }
+    
+    private void OnFitToViewRequested(object? sender, EventArgs e)
+    {
+        if (_flowEditor != null)
+        {
+            _flowEditor.FitToView();
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.EditorViewModel.Zoom = _flowEditor.Zoom;
+                vm.EditorViewModel.TranslateX = _flowEditor.TranslateX;
+                vm.EditorViewModel.TranslateY = _flowEditor.TranslateY;
+            }
+            LogHelper.LogInfo("MainWindow", "自动布局后适应视窗");
         }
     }
     
@@ -118,13 +134,26 @@ public partial class MainWindow : Window
         {
             if (e.Key == Key.Delete || e.Key == Key.Back)
             {
-                LogHelper.LogInfo("MainWindow", "Delete键按下, SelectedConnection={Selected}", _flowEditor.SelectedConnection?.Id ?? "null");
+                LogHelper.LogInfo("MainWindow", "Delete键按下, SelectedConnection={Selected}, SelectedNode={Node}", 
+                    _flowEditor.SelectedConnection?.Id ?? "null",
+                    _flowEditor.SelectedNode?.Title ?? "null");
                 
+                // 优先删除选中的连线
                 if (_flowEditor.SelectedConnection != null)
                 {
                     LogHelper.LogInfo("MainWindow", "删除选中连线: {ConnectionId}", _flowEditor.SelectedConnection.Id);
                     _flowEditor.DeleteConnection(_flowEditor.SelectedConnection);
                     e.Handled = true;
+                }
+                // 如果没有选中的连线，删除选中的节点
+                else if (_flowEditor.SelectedNode != null)
+                {
+                    if (DataContext is MainWindowViewModel vm)
+                    {
+                        LogHelper.LogInfo("MainWindow", "删除选中节点: {Title}", _flowEditor.SelectedNode.Title);
+                        vm.EditorViewModel.DeleteSelectedNodeCommand.Execute(null);
+                        e.Handled = true;
+                    }
                 }
             }
             
