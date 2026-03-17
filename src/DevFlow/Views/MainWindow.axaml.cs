@@ -71,6 +71,44 @@ public partial class MainWindow : Window
             LogHelper.LogInfo("MainWindow", "自动布局后刷新连线");
         }
     }
+    
+    private void OnZoomInClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_flowEditor != null)
+        {
+            _flowEditor.ZoomInCentered();
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.EditorViewModel.Zoom = _flowEditor.Zoom;
+            }
+        }
+    }
+    
+    private void OnZoomOutClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_flowEditor != null)
+        {
+            _flowEditor.ZoomOutCentered();
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.EditorViewModel.Zoom = _flowEditor.Zoom;
+            }
+        }
+    }
+    
+    private void OnResetZoomClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_flowEditor != null)
+        {
+            _flowEditor.ResetZoomCentered();
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.EditorViewModel.Zoom = _flowEditor.Zoom;
+                vm.EditorViewModel.TranslateX = _flowEditor.TranslateX;
+                vm.EditorViewModel.TranslateY = _flowEditor.TranslateY;
+            }
+        }
+    }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {

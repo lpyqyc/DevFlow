@@ -181,6 +181,86 @@ public class FlowEditor : Canvas
     {
         NodesProperty.Changed.AddClassHandler<FlowEditor>((editor, e) => editor.OnNodesChanged(e));
         ConnectionsProperty.Changed.AddClassHandler<FlowEditor>((editor, e) => editor.OnConnectionsChanged(e));
+        ZoomProperty.Changed.AddClassHandler<FlowEditor>((editor, e) => editor.OnZoomChanged(e));
+        ShowGridProperty.Changed.AddClassHandler<FlowEditor>((editor, e) => editor.OnShowGridChanged(e));
+    }
+    
+    private void OnZoomChanged(AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is double newZoom)
+        {
+            LogHelper.LogInfo("FlowEditor", "缩放变化: {Zoom}", newZoom);
+            UpdateAllNodePositions();
+            UpdateGrid();
+            ScheduleConnectionUpdate();
+        }
+    }
+    
+    private void OnShowGridChanged(AvaloniaPropertyChangedEventArgs e)
+    {
+        UpdateGrid();
+        LogHelper.LogInfo("FlowEditor", "网格显示: {ShowGrid}", ShowGrid);
+    }
+    
+    /// <summary>
+    /// 以视窗中心为基准放大
+    /// </summary>
+    public void ZoomInCentered()
+    {
+        var centerX = Bounds.Width / 2;
+        var centerY = Bounds.Height / 2;
+        ApplyZoom(1.2, new Point(centerX, centerY));
+    }
+    
+    /// <summary>
+    /// 以视窗中心为基准缩小
+    /// </summary>
+    public void ZoomOutCentered()
+    {
+        var centerX = Bounds.Width / 2;
+        var centerY = Bounds.Height / 2;
+        ApplyZoom(1.0 / 1.2, new Point(centerX, centerY));
+    }
+    
+    /// <summary>
+    /// 重置缩放到100%，以视窗中心为基准
+    /// </summary>
+    public void ResetZoomCentered()
+    {
+        var centerX = Bounds.Width / 2;
+        var centerY = Bounds.Height / 2;
+        var centerCanvasX = (centerX - _translateX) / Zoom;
+        var centerCanvasY = (centerY - _translateY) / Zoom;
+        
+        Zoom = 1.0;
+        _translateX = centerX - centerCanvasX;
+        _translateY = centerY - centerCanvasY;
+        
+        UpdateAllNodePositions();
+        UpdateGrid();
+        ScheduleConnectionUpdate();
+        
+        LogHelper.LogInfo("FlowEditor", "重置缩放: Zoom=1.0, TranslateX={TX}, TranslateY={TY}", _translateX, _translateY);
+    }
+    
+    private void ApplyZoom(double factor, Point center)
+    {
+        var newZoom = Zoom * factor;
+        newZoom = Math.Max(0.25, Math.Min(4.0, newZoom));
+        
+        var centerCanvasX = (center.X - _translateX) / Zoom;
+        var centerCanvasY = (center.Y - _translateY) / Zoom;
+        
+        _translateX = center.X - centerCanvasX * newZoom;
+        _translateY = center.Y - centerCanvasY * newZoom;
+        
+        Zoom = newZoom;
+        
+        UpdateAllNodePositions();
+        UpdateGrid();
+        ScheduleConnectionUpdate();
+        
+        LogHelper.LogInfo("FlowEditor", "缩放: Zoom={Zoom:F2}, TranslateX={TX}, TranslateY={TY}", newZoom, _translateX, _translateY);
     }
 
     #endregion
@@ -569,6 +649,9 @@ public class FlowEditor : Canvas
         SetTop(control, node.Position.Y * Zoom + _translateY);
         control.Width = NodeWidth * Zoom;
         control.Height = NodeHeight * Zoom;
+        
+        // 设置节点 ZIndex 为较低值，确保连线在上层
+        control.ZIndex = 0;
         
         _nodeControls[node.Id] = control;
         Children.Add(control);
@@ -989,6 +1072,9 @@ public class FlowEditor : Canvas
             targetNode.Position.Y * Zoom + _translateY + NodeHeight * Zoom / 2
         );
         
+        // 设置连线 ZIndex 为较高值，确保连线在节点上层
+        control.ZIndex = 10;
+        
         control.SelectionChanged += (s, e) =>
         {
             if (control.IsSelected)
@@ -1010,7 +1096,6 @@ public class FlowEditor : Canvas
         
         _connectionControls[connection.Id] = control;
         
-        // 连线添加到最后，显示在节点上方
         Children.Add(control);
         
         // 延迟更新连线位置，确保布局完成

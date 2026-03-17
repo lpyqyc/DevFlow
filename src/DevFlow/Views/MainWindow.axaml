@@ -32,12 +32,12 @@
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="缩放:" VerticalAlignment="Center" Foreground="#CCCCCC"/>
-                    <Button Content="-" Command="{Binding EditorViewModel.ZoomOutCommand}" Width="30" Padding="4"/>
+                    <Button Content="-" Click="OnZoomOutClick" Width="30" Padding="4"/>
                     <TextBlock Text="{Binding EditorViewModel.Zoom, StringFormat={}{0:P0}}" VerticalAlignment="Center" Foreground="#CCCCCC" Width="50" TextAlignment="Center"/>
-                    <Button Content="+" Command="{Binding EditorViewModel.ZoomInCommand}" Width="30" Padding="4"/>
-                    <Button Content="100%" Command="{Binding EditorViewModel.ResetZoomCommand}" Padding="8,6"/>
+                    <Button Content="+" Click="OnZoomInClick" Width="30" Padding="4"/>
+                    <Button Content="100%" Click="OnResetZoomClick" Padding="8,6"/>
                     <Separator Width="1" Background="#3E3E42" Margin="8,0"/>
-                    <CheckBox Content="网格" IsChecked="{Binding EditorViewModel.ShowGrid}" Foreground="#CCCCCC"/>
+                    <CheckBox Content="网格" IsChecked="{Binding EditorViewModel.ShowGrid, Mode=TwoWay}" Foreground="#CCCCCC"/>
                 </StackPanel>
 
                 <TextBlock/>
