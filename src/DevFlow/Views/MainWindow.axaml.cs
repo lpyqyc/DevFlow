@@ -1,10 +1,14 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using DevFlow.Controls;
 using DevFlow.Models;
@@ -23,8 +27,54 @@ public partial class MainWindow : Window
         InitializeComponent();
         LogHelper.LogInfo("MainWindow", "主窗口初始化完成");
         
+        // 加载窗口图标
+        LoadWindowIcon();
+        
         Loaded += OnLoaded;
         KeyDown += OnKeyDown;
+    }
+    
+    private void LoadWindowIcon()
+    {
+        try
+        {
+            // 使用工业蓝色的流程图标路径 (viewBox: 0 0 1024 1024)
+            var iconPath = "M1024 476.382609H629.982609L512 356.173913l-117.982609 120.208696H73.46087V182.53913h182.53913v109.078261h732.382609V0H256v109.078261H0v438.53913h394.017391L512 667.826087l117.982609-120.208696h320.556521v293.843479h-146.921739v-109.078261H73.46087V1024h730.156521v-109.078261H1024z";
+            
+            // 创建 Geometry
+            var geometry = Geometry.Parse(iconPath);
+            var brush = new SolidColorBrush(Color.Parse("#0066CC"));
+            
+            // 创建 DrawingGroup，添加缩放变换 (1024 -> 256)
+            var scale = 256.0 / 1024.0;
+            var drawingGroup = new DrawingGroup
+            {
+                Transform = new ScaleTransform(scale, scale)
+            };
+            
+            using (var context = drawingGroup.Open())
+            {
+                context.DrawGeometry(brush, null, geometry);
+            }
+            
+            // 创建 DrawingImage
+            var drawingImage = new DrawingImage(drawingGroup);
+            
+            // 渲染为位图作为窗口图标
+            var bitmap = new RenderTargetBitmap(new PixelSize(256, 256));
+            using (var ctx = bitmap.CreateDrawingContext())
+            {
+                var rect = new Rect(0, 0, 256, 256);
+                ctx.DrawImage(drawingImage, rect, rect);
+            }
+            
+            Icon = new WindowIcon(bitmap);
+            LogHelper.LogInfo("MainWindow", "窗口图标加载成功");
+        }
+        catch (Exception ex)
+        {
+            LogHelper.LogError("MainWindow", "加载窗口图标失败: {Error}", ex.Message);
+        }
     }
 
     private void OnLoaded(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
@@ -44,6 +94,9 @@ public partial class MainWindow : Window
             vm.EditorViewModel.DocumentReset += OnDocumentReset;
             vm.EditorViewModel.FitToViewRequested += OnFitToViewRequested;
         }
+        
+        // 订阅窗口状态变化
+        SubscribeToWindowState();
     }
     
     private void OnViewportChanged(object? sender, ViewportState e)
@@ -333,4 +386,78 @@ public partial class MainWindow : Window
             LogHelper.LogWarning("MainWindow", "deviceTypeObj 不是 DeviceTypeItem 或 DataContext 不是 MainWindowViewModel");
         }
     }
+    
+    #region 窗口控制方法
+    
+    public void MinimizeWindow(object? sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+    
+    public void MaximizeWindow(object? sender, RoutedEventArgs e)
+    {
+        if (WindowState == WindowState.Maximized)
+        {
+            WindowState = WindowState.Normal;
+        }
+        else
+        {
+            WindowState = WindowState.Maximized;
+        }
+    }
+    
+    public void CloseWindow(object? sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+    
+    public void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            BeginMoveDrag(e);
+        }
+    }
+    
+    private void SubscribeToWindowState()
+    {
+        var maximizeIcon = this.FindControl<Avalonia.Controls.Shapes.Path>("MaximizeIcon");
+        var titleBar = this.FindControl<Border>("TitleBar");
+        
+        if (maximizeIcon == null || titleBar == null) return;
+        
+        PropertyChanged += (s, e) =>
+        {
+            if (e.Property == WindowStateProperty)
+            {
+                if (WindowState == WindowState.Maximized)
+                {
+                    // 还原图标
+                    maximizeIcon.Data = Geometry.Parse("M2048 1638h-410v410h-1638v-1638h410v-410h1638v1638zm-614-1024h-1229v1229h1229v-1229zm409-409h-1229v205h1024v1024h205v-1229z");
+                    Padding = new Thickness(7, 7, 7, 7);
+                }
+                else
+                {
+                    // 最大化图标
+                    maximizeIcon.Data = Geometry.Parse("M2048 2048v-2048h-2048v2048h2048zM1843 1843h-1638v-1638h1638v1638z");
+                    Padding = new Thickness(0, 0, 0, 0);
+                }
+            }
+        };
+        
+        // 双击标题栏切换最大化状态
+        titleBar.DoubleTapped += (s, e) =>
+        {
+            if (WindowState == WindowState.Maximized)
+            {
+                WindowState = WindowState.Normal;
+            }
+            else
+            {
+                WindowState = WindowState.Maximized;
+            }
+        };
+    }
+    
+    #endregion
 }

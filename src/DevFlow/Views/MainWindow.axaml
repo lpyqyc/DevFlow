@@ -3,19 +3,135 @@
         xmlns:vm="using:DevFlow.ViewModels"
         xmlns:views="using:DevFlow.Views"
         xmlns:controls="using:DevFlow.Controls"
+        xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="DevFlow.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
         Title="DevFlow - 设备流程编辑器"
         Width="1200" Height="800"
-        MinWidth="900" MinHeight="600">
+        MinWidth="900" MinHeight="600"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        ExtendClientAreaChromeHints="NoChrome"
+        Background="#1E1E1E">
 
-    <DockPanel>
+    <Grid RowDefinitions="Auto,Auto,*">
+        <!-- 自定义 TitleBar -->
+        <Border Grid.Row="0" Background="#35353A" Height="32" x:Name="TitleBar"
+                PointerPressed="OnTitleBarPointerPressed">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <!-- 左侧: 图标 + 应用名称 -->
+                <StackPanel Orientation="Horizontal" Margin="8,0" Spacing="8"
+                            IsHitTestVisible="False">
+                    <svg:Svg Path="avares://DevFlow/Assets/flowIcon.svg" 
+                             Width="18" Height="18" VerticalAlignment="Center"/>
+                    <TextBlock Text="DevFlow - 设备流程编辑器" 
+                               VerticalAlignment="Center"
+                               Foreground="#CCCCCC" FontSize="12"/>
+                </StackPanel>
+                
+                <!-- 中间空白区域（用于拖拽窗口） -->
+                <Panel Grid.Column="1" Background="Transparent" x:Name="TitleBarDragArea"/>
+                
+                <!-- 右侧: 窗口控制按钮 -->
+                <StackPanel Orientation="Horizontal" Grid.Column="2" Spacing="0">
+                    <!-- 最小化按钮 -->
+                    <Button x:Name="MinimizeButton" 
+                            Click="MinimizeWindow"
+                            Width="46" Height="32"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Bottom"
+                            VerticalAlignment="Stretch"
+                            BorderThickness="0"
+                            ToolTip.Tip="最小化">
+                        <Button.Resources>
+                            <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
+                        </Button.Resources>
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="#44AAAAAA"/>
+                            </Style>
+                            <Style Selector="Button:not(:pointerover) /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                        </Button.Styles>
+                        <Path Data="M2048 1229v-205h-2048v205h2048z"
+                              Stretch="Uniform"
+                              Fill="#CCCCCC"
+                              Width="12" Height="12"
+                              VerticalAlignment="Center"
+                              HorizontalAlignment="Center"/>
+                    </Button>
+                    
+                    <!-- 最大化/还原按钮 -->
+                    <Button x:Name="MaximizeButton" 
+                            Click="MaximizeWindow"
+                            Width="46" Height="32"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            VerticalAlignment="Stretch"
+                            BorderThickness="0"
+                            ToolTip.Tip="最大化">
+                        <Button.Resources>
+                            <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
+                        </Button.Resources>
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="#44AAAAAA"/>
+                            </Style>
+                            <Style Selector="Button:not(:pointerover) /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                        </Button.Styles>
+                        <Path x:Name="MaximizeIcon"
+                              Data="M2048 2048v-2048h-2048v2048h2048zM1843 1843h-1638v-1638h1638v1638z"
+                              Stretch="Uniform"
+                              Fill="#CCCCCC"
+                              Width="12" Height="12"
+                              VerticalAlignment="Center"
+                              HorizontalAlignment="Center"/>
+                    </Button>
+                    
+                    <!-- 关闭按钮 -->
+                    <Button x:Name="CloseButton" 
+                            Click="CloseWindow"
+                            Width="46" Height="32"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            VerticalAlignment="Stretch"
+                            BorderThickness="0"
+                            ToolTip.Tip="关闭">
+                        <Button.Resources>
+                            <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
+                        </Button.Resources>
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="#E81123"/>
+                            </Style>
+                            <Style Selector="Button:not(:pointerover) /template/ ContentPresenter#PART_ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="Button:pointerover > Path">
+                                <Setter Property="Fill" Value="White"/>
+                            </Style>
+                            <Style Selector="Button:not(:pointerover) > Path">
+                                <Setter Property="Fill" Value="#CCCCCC"/>
+                            </Style>
+                        </Button.Styles>
+                        <Path Data="M1169 1024l879 -879l-145 -145l-879 879l-879 -879l-145 145l879 879l-879 879l145 145l879 -879l879 879l145 -145z"
+                              Stretch="Uniform"
+                              Width="12" Height="12"
+                              VerticalAlignment="Center"
+                              HorizontalAlignment="Center"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- 顶部工具栏 -->
-        <Border DockPanel.Dock="Top" Background="#252526" Padding="8">
+        <Border Grid.Row="1" Background="#252526" Padding="8">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8">
                     <!-- 新建按钮 -->
@@ -45,7 +161,7 @@
         </Border>
 
         <!-- 主内容区: 三栏布局 -->
-        <Grid ColumnDefinitions="200,*,280">
+        <Grid Grid.Row="2" ColumnDefinitions="200,*,280">
             <!-- 左侧设备列表 (支持拖拽) -->
             <Border Grid.Column="0" Background="#2D2D30" BorderBrush="#3E3E42" BorderThickness="0,0,1,0">
                 <DockPanel>
@@ -122,5 +238,5 @@
                 </DockPanel>
             </Border>
         </Grid>
-    </DockPanel>
+    </Grid>
 </Window>
