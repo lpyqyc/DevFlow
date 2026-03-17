@@ -28,10 +28,13 @@ public class DeviceRegistry : IDeviceRegistry
             Name = "摄像头",
             Icon = "📷",
             Category = DeviceCategory.Sensor,
-            InputPorts = new List<DevicePort>(),
+            InputPorts = new List<DevicePort>
+            {
+                new() { Name = "控制信号", DataType = typeof(bool), Direction = PortDirection.Input, DefaultValue = true }
+            },
             OutputPorts = new List<DevicePort>
             {
-                new() { Name = "图像数据", DataType = typeof(byte[]), Direction = PortDirection.Output }
+                new() { Name = "图像数据", DataType = typeof(object), Direction = PortDirection.Output }
             },
             ErrorPorts = new List<DevicePort>
             {
@@ -47,7 +50,7 @@ public class DeviceRegistry : IDeviceRegistry
             Category = DeviceCategory.Actuator,
             InputPorts = new List<DevicePort>
             {
-                new() { Name = "速度控制", DataType = typeof(int), Direction = PortDirection.Input }
+                new() { Name = "速度控制", DataType = typeof(object), Direction = PortDirection.Input, DefaultValue = 0 }
             },
             OutputPorts = new List<DevicePort>
             {
@@ -65,10 +68,13 @@ public class DeviceRegistry : IDeviceRegistry
             Name = "传感器",
             Icon = "🌡️",
             Category = DeviceCategory.Sensor,
-            InputPorts = new List<DevicePort>(),
+            InputPorts = new List<DevicePort>
+            {
+                new() { Name = "使能", DataType = typeof(bool), Direction = PortDirection.Input, DefaultValue = true }
+            },
             OutputPorts = new List<DevicePort>
             {
-                new() { Name = "传感器数据", DataType = typeof(double), Direction = PortDirection.Output }
+                new() { Name = "传感器数据", DataType = typeof(object), Direction = PortDirection.Output }
             },
             ErrorPorts = new List<DevicePort>
             {
@@ -84,11 +90,11 @@ public class DeviceRegistry : IDeviceRegistry
             Category = DeviceCategory.Controller,
             InputPorts = new List<DevicePort>
             {
-                new() { Name = "控制信号", DataType = typeof(bool), Direction = PortDirection.Input }
+                new() { Name = "输入信号", DataType = typeof(object), Direction = PortDirection.Input, DefaultValue = false }
             },
             OutputPorts = new List<DevicePort>
             {
-                new() { Name = "开关状态", DataType = typeof(bool), Direction = PortDirection.Output }
+                new() { Name = "输出信号", DataType = typeof(object), Direction = PortDirection.Output }
             },
             ErrorPorts = new List<DevicePort>
             {
@@ -104,11 +110,11 @@ public class DeviceRegistry : IDeviceRegistry
             Category = DeviceCategory.Exception,
             InputPorts = new List<DevicePort>
             {
-                new() { Name = "正常输入", DataType = typeof(object), Direction = PortDirection.Input }
+                new() { Name = "正常输入", DataType = typeof(object), Direction = PortDirection.Input, DefaultValue = null }
             },
             OutputPorts = new List<DevicePort>
             {
-                new() { Name = "降级输出", DataType = typeof(object), Direction = PortDirection.Output }
+                new() { Name = "正常输出", DataType = typeof(object), Direction = PortDirection.Output }
             },
             ErrorPorts = new List<DevicePort>
             {

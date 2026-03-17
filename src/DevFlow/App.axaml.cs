@@ -44,9 +44,13 @@ public partial class App : Application
 
     private void ConfigureServices(IServiceCollection services)
     {
+        services.AddSingleton<ILogService, LogService>();
+        services.AddSingleton<IUndoRedoService, UndoRedoService>();
         services.AddSingleton<IDeviceRegistry, DeviceRegistry>();
         services.AddSingleton<IFlowExecutor, FlowExecutor>();
         services.AddTransient<MainWindowViewModel>();
+        
+        LogHelper.LogInfo("App", "服务配置完成，已注册: ILogService, IUndoRedoService, IDeviceRegistry, IFlowExecutor");
     }
 
     private void DisableAvaloniaDataAnnotationValidation()

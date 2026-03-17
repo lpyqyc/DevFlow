@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using DevFlow.Services;
-using DevFlow.ViewModels;
 
 namespace DevFlow.ViewModels;
 
@@ -12,9 +11,9 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private PropertyViewModel _propertyViewModel;
 
-    public MainWindowViewModel(IDeviceRegistry deviceRegistry, IFlowExecutor flowExecutor)
+    public MainWindowViewModel(IDeviceRegistry deviceRegistry, IFlowExecutor flowExecutor, IUndoRedoService undoRedoService)
     {
-        _editorViewModel = new EditorViewModel(deviceRegistry, flowExecutor);
+        _editorViewModel = new EditorViewModel(deviceRegistry, flowExecutor, undoRedoService);
         _propertyViewModel = new PropertyViewModel();
 
         _editorViewModel.PropertyChanged += (s, e) =>
@@ -24,5 +23,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 PropertyViewModel.SelectedNode = _editorViewModel.SelectedNode;
             }
         };
+        
+        LogHelper.LogInfo("MainWindowViewModel", "MainWindowViewModel 初始化完成");
     }
 }
